@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  bonitasoft-backend:
+    build:
+      context: backend/
+      dockerfile: Dockerfile
+    image: bonitasoft/backend:latest
+    environment:
+      - BONITASOFT_EXTERNAL_SERVICE_URL=http://bonitasoft-external-service:3004
+      - SPRING_JPA_DATABASE=POSTGRESQL
+      - SPRING_DATASOURCE_DRIVER_CLASS=org.postgresql.Driver
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://bonitasoft-database:5432/bonita
+      - SPRING_DATASOURCE_USERNAME=bonita
+      - SPRING_DATASOURCE_PASSWORD=bpm
+    ports:
+      - "8080:8080"
+    networks:
+      - bonitasoft-network
+    depends_on:
+      - bonitasoft-database
+
+  bonitasoft-database:
+    image: postgres:13.4
+    environment:
+      - POSTGRES_DB=bonita
+      - POSTGRES_USER=bonita
+      - POSTGRES_PASSWORD=bpm
+    ports:
+      - "5432:5432"
+    networks:
+      - bonitasoft-network
+    healthcheck:
+      test: pg_isready -U bonita
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bonitasoft-external-service:
+    build:
+      context: external-service/
+      dockerfile: Dockerfile
+    image: bonitasoft/external-service:latest
+    ports:
+      - "3004:3004"
+    networks:
+      - bonitasoft-network
+
+networks:
+  bonitasoft-network:
+    driver: bridge
